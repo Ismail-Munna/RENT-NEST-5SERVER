@@ -11,10 +11,20 @@ const connectPrisma = async () => {
   isPrismaConnected = true;
 };
 
-// Vercel serverless handler — wraps Express app
+
 const handler = async (req: any, res: any) => {
-  await connectPrisma();
-  return app(req, res);
+  try {
+    await connectPrisma();
+    return app(req, res);
+  } catch (error: any) {
+    console.error("Vercel Serverless Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Initialization Failed",
+      error: error.message,
+      hasDatabaseUrl: !!process.env.DATABASE_URL
+    });
+  }
 };
 
 export default handler;
