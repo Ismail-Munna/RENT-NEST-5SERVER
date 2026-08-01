@@ -3,14 +3,14 @@ import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { reviewService } from "./review.service";
+import { ApiError } from "../../utils/ApiError";
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const payload = req.body;
-  const userId = (req as Request & { user?: { id: string } }).user?.id;
+  const userId = req.user?.id;
 
   if (!userId) {
-    res.status(httpStatus.UNAUTHORIZED).json({ success: false, statusCode: httpStatus.UNAUTHORIZED, message: "Authentication required" });
-    return;
+    throw new ApiError(httpStatus.UNAUTHORIZED, "Authentication required");
   }
 
   const review = await reviewService.createReview(payload, userId);

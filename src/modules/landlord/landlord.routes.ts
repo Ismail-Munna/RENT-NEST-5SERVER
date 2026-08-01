@@ -4,6 +4,12 @@ import { authenticate, authorizeRoles } from "../../middlewares/auth.middleware"
 
 const router = Router();
 
+router.get(
+  "/properties",
+  authenticate,
+  authorizeRoles("LANDLORD"),
+  landlordController.getLandlordProperties
+);
 router.post(
   "/properties",
   authenticate,

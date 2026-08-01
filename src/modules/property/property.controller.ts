@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { propertyService } from "./property.service";
+import { ApiError } from "../../utils/ApiError";
 
 const getAllProperties = catchAsync(async (req: Request, res: Response) => {
   const properties = await propertyService.getAllProperties(req.query);
@@ -19,12 +20,7 @@ const getPropertyById = catchAsync(async (req: Request, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
   if (!id) {
-    res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      statusCode: httpStatus.BAD_REQUEST,
-      message: "Property id is required",
-    });
-    return;
+    throw new ApiError(httpStatus.BAD_REQUEST, "Property id is required");
   }
 
   const property = await propertyService.getPropertyById(id);

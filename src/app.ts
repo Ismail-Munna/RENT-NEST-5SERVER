@@ -2,8 +2,6 @@ import cookieParser from "cookie-parser";
 import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import config from "./config/index";
-import httpStatus from "http-status"
-import bcrypt from "bcryptjs";
 import { userRoutes } from "./modules/user/user.route";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { landlordRoutes } from "./modules/landlord/landlord.routes";
@@ -13,33 +11,42 @@ import { reviewRoutes } from "./modules/review/review.routes";
 import { adminRoutes } from "./modules/admin/admin.routes";
 import { propertyRoutes } from "./modules/property/property.routes";
 import { categoryRoutes } from "./modules/category/category.routes";
+import { globalErrorHandler } from "./middlewares/globalErrorHandler";
+import { notFoundHandler } from "./middlewares/notFoundHandler";
 
-const app : Application = express();
+const app: Application = express();
 
-
-app.use(cors({
+app.use(
+  cors({
     origin: process.env.NODE_ENV === "production" ? config.app_url : true,
     credentials: true,
-}))
+  })
+);
 app.use(express.json());
-app.use(express.urlencoded({extended : true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.get("/",(req:Request,res:Response)=>{
-    
-        res.send("hello world");
-})
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "RentNest API Server is running smoothly!",
+  });
+});
 
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/properties", propertyRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/landlord", landlordRoutes);
+app.use("/api/rentals", rentalRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/admin", adminRoutes);
 
-app.use("/api/users",userRoutes)
-app.use("/api/auth",authRoutes)
-app.use("/api/properties", propertyRoutes)
-app.use("/api/categories", categoryRoutes)
-app.use("/api/landlord",landlordRoutes)
-app.use("/api/rentals", rentalRoutes)
-app.use("/api/payments", paymentRoutes)
-app.use("/api/reviews", reviewRoutes)
-app.use("/api/admin", adminRoutes)
+// 404 Handler for undefined routes
+app.use(notFoundHandler);
 
+// Centralized Global Error Handler
+app.use(globalErrorHandler);
 
 export default app;

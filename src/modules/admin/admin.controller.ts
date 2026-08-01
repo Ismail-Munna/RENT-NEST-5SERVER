@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { adminService } from "./admin.service";
+import { ApiError } from "../../utils/ApiError";
 
 const getAllUsers = catchAsync(async (_req: Request, res: Response) => {
   const users = await adminService.getAllUsers();
@@ -19,12 +20,7 @@ const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
   const { status } = req.body;
 
   if (!id) {
-    res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      statusCode: httpStatus.BAD_REQUEST,
-      message: "User id is required",
-    });
-    return;
+    throw new ApiError(httpStatus.BAD_REQUEST, "User id is required");
   }
 
   const user = await adminService.updateUserStatus(id, status);
@@ -46,13 +42,29 @@ const getAllProperties = catchAsync(async (_req: Request, res: Response) => {
   });
 });
 
+const deleteProperty = catchAsync(async (req: Request, res: Response) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (!id) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Property id is required");
+  }
+
+  const property = await adminService.deleteProperty(id);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Property deleted by admin successfully",
+    data: { property },
+  });
+});
+
 const getAllRentalRequests = catchAsync(async (_req: Request, res: Response) => {
   const rentalRequests = await adminService.getAllRentalRequests();
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
     message: "Rental requests fetched successfully",
-    data: { rentalRequests },
+    data: { rentals: rentalRequests },
   });
 });
 
@@ -70,12 +82,7 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
   if (!id) {
-    res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      statusCode: httpStatus.BAD_REQUEST,
-      message: "Category id is required",
-    });
-    return;
+    throw new ApiError(httpStatus.BAD_REQUEST, "Category id is required");
   }
 
   const category = await adminService.updateCategory(id, req.body);
@@ -91,12 +98,7 @@ const deleteCategory = catchAsync(async (req: Request, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
   if (!id) {
-    res.status(httpStatus.BAD_REQUEST).json({
-      success: false,
-      statusCode: httpStatus.BAD_REQUEST,
-      message: "Category id is required",
-    });
-    return;
+    throw new ApiError(httpStatus.BAD_REQUEST, "Category id is required");
   }
 
   const category = await adminService.deleteCategory(id);
@@ -112,6 +114,7 @@ export const adminController = {
   getAllUsers,
   updateUserStatus,
   getAllProperties,
+  deleteProperty,
   getAllRentalRequests,
   createCategory,
   updateCategory,

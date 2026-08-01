@@ -1,99 +1,75 @@
 import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status";
 import config from "../config/index";
 import { prisma } from "../lib/prisma";
 import { jwtUtils } from "../utils/jwt";
-
-interface IUserPayload {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-type AuthenticatedRequest = Request & {
-  user?: IUserPayload;
-};
+import { ApiError } from "../utils/ApiError";
 
 const authenticate = async (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
-  const request = req as AuthenticatedRequest;
-  const tokenFromCookie = req.cookies?.accessToken;
-  const tokenFromHeader = req.headers.authorization?.startsWith("Bearer ")
-    ? req.headers.authorization.split(" ")[1]
-    : undefined;
-  const token = tokenFromCookie || tokenFromHeader;
+  try {
+    const tokenFromCookie = req.cookies?.accessToken;
+    const tokenFromHeader = req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : undefined;
+    const token = tokenFromCookie || tokenFromHeader;
 
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      statusCode: 401,
-      message: "Authentication token is required",
+    if (!token) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Authentication token is required");
+    }
+
+    const verifiedToken = jwtUtils.verifyToken(token, config.jwt_access_secret);
+
+    if (!verifiedToken.success || typeof verifiedToken.data !== "object" || verifiedToken.data === null) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid or expired token");
+    }
+
+    const tokenPayload = verifiedToken.data as { id?: string };
+
+    if (!tokenPayload.id) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid token payload");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: tokenPayload.id },
     });
-    return;
+
+    if (!user) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "User not found");
+    }
+
+    if (user.status === "BANNED") {
+      throw new ApiError(httpStatus.FORBIDDEN, "Your account has been blocked. Please contact support.");
+    }
+
+    req.user = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+
+    console.log("[AUTH] req.user set:", JSON.stringify(req.user));
+
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  const verifiedToken = jwtUtils.verifyToken(token, config.jwt_access_secret);
-
-  if (!verifiedToken.success || typeof verifiedToken.data !== "object" || verifiedToken.data === null) {
-    res.status(401).json({
-      success: false,
-      statusCode: 401,
-      message: "Invalid or expired token",
-    });
-    return;
-  }
-
-  const tokenPayload = verifiedToken.data as { id?: string };
-
-  if (!tokenPayload.id) {
-    res.status(401).json({
-      success: false,
-      statusCode: 401,
-      message: "Invalid token payload",
-    });
-    return;
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: tokenPayload.id },
-  });
-
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      statusCode: 401,
-      message: "User not found",
-    });
-    return;
-  }
-
-  request.user = {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  };
-
-  next();
 };
 
 const authorizeRoles = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const request = req as AuthenticatedRequest;
-
-    if (!request.user || !roles.includes(request.user.role)) {
-      res.status(403).json({
-        success: false,
-        statusCode: 403,
-        message: "You are not authorized to access this resource",
-      });
-      return;
+  return (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      if (!req.user || !roles.includes(req.user.role)) {
+        throw new ApiError(httpStatus.FORBIDDEN, "You are not authorized to access this resource");
+      }
+      next();
+    } catch (error) {
+      next(error);
     }
-
-    next();
   };
 };
 
