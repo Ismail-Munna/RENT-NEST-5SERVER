@@ -8,8 +8,8 @@
   "main": "server.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsup src/server.ts --format esm --out-dir dist --no-splitting",
-    "vercel-build": "tsup api/index.ts --format esm --out-dir dist/api --no-splitting",
+    "build": "tsup",
+    "vercel-build": "tsup",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
     "test": "echo \"Error: no test specified\" && exit 1"
