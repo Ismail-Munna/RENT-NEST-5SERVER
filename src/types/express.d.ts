@@ -1,10 +1,11 @@
-import { User } from "../../generated/prisma/client";
-
+// import { User } from "../../generated/prisma/client";
+import { User } from "@prisma/client";
 export interface IUserPayload {
   id: string;
   name: string;
   email: string;
   role: string;
+
 }
 
 declare global {
