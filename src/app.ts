@@ -27,7 +27,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  res.send({ success: true, message: "Rent Nest Server is running successfully!" });
+  res.status(200).json({
+    success: true,
+    message: "Rent Nest Server is running successfully!",
+  });
 });
 
 app.use("/api/users", userRoutes);
